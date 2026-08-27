@@ -1,0 +1,7 @@
+{
+  "name": "zhidu-qa-proxy",
+  "version": "1.0.0",
+  "description": "境外财务管理问答代理 (SCF)",
+  "main": "index.js",
+  "engines": { "node": ">=16" }
+}
