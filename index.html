@@ -269,7 +269,10 @@
   .theme-menu button:hover { background: var(--primary-light); }
   .theme-menu button.on { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
   #themeDeco { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-  header, main, footer { position: relative; z-index: 1; }
+  /* header 层级必须高于 main/footer：主题下拉菜单是 header 的溢出内容，
+     若与 main 同级会被其整层盖住（菜单弹出但看不见、点不着） */
+  header { position: relative; z-index: 20; }
+  main, footer { position: relative; z-index: 1; }
 
   /* ---- 国潮风 · 水墨 ---- */
   body[data-theme="guochao"] {
