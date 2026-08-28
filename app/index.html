@@ -236,6 +236,18 @@
   .followups { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
   .fu-label { font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
   .fuchip { display: inline-block; margin: 0 6px 6px 0; font-size: 13px; padding: 5px 12px; }
+  .keycard {
+    background: var(--primary-light);
+    border-left: 3px solid var(--primary);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 4px 0 10px;
+  }
+  .keycard .kc-title { font-size: 12px; color: var(--primary-dark); font-weight: 600; margin-bottom: 6px; }
+  .keycard ul { margin: 0 0 0 18px; }
+  .keycard li { margin-bottom: 4px; font-size: 14px; }
+  sup.cite { color: var(--primary-dark); cursor: default; font-weight: 600; margin: 0 1px; }
+  .fbtn.on { color: var(--primary-dark); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -345,7 +357,7 @@ function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function renderMarkdown(text) {
-  let lines = escapeHtml(text).split("\n");
+  const lines = escapeHtml(text).replace(/\[(\d{1,2})\]/g, '<sup class="cite">$1</sup>').split("\n");
   let html = "";
   let inList = false, inTable = false;
   const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
@@ -378,6 +390,28 @@ function renderMarkdown(text) {
   }
   closeList(); closeTable();
   return html;
+}
+
+// ============ 回答解析：要点卡 + 追问 ============
+function extractKeycard(answer) {
+  // 按「要点：」行截取其后的连续区块（直到空行或文本真正结尾），避免 multiline $ 在首个行尾提前截断
+  const m = answer.match(/^[ \t]*(?:【要点】|要点[:：])[ \t]*\n?([\s\S]*?)\n[ \t]*\n|^[ \t]*(?:【要点】|要点[:：])[ \t]*\n?([\s\S]+)$/);
+  const seg = (m && (m[1] !== undefined ? m[1] : m[2])) || "";
+  if (!m) return null;
+  const items = seg.split("\n").map(s => s.replace(/^[\s\-\*\d.、]+/, "").trim()).filter(s => s.length >= 2).slice(0, 5);
+  return items.length ? items : null;
+}
+function parseAnswer(answer) {
+  const parsed = splitFollowups(answer);
+  let body = parsed.body;
+  const keyItems = extractKeycard(body);
+  if (keyItems) body = body.replace(/^\s*(?:【要点】|要点[:：])\s*[\s\S]*?(?:\n\s*\n|$)/m, "").trim();
+  return { body, keyItems, followups: parsed.followups };
+}
+function keycardHtml(items) {
+  if (!items || !items.length) return "";
+  return `<div class="keycard"><div class="kc-title">⚡ 要点速览</div><ul>` +
+    items.map(i => `<li>${i}</li>`).join("") + `</ul></div>`;
 }
 
 // ============ 国别筛选 ============
@@ -485,6 +519,35 @@ function addFollowups(div, followups) {
   div.querySelector(".bubble").appendChild(box);
 }
 
+// ============ 点赞/点踩反馈 ============
+function addFeedback(div, fb) {
+  let tools = div.querySelector(".msg-tools");
+  if (!tools) {
+    tools = document.createElement("div");
+    tools.className = "msg-tools";
+    div.querySelector(".bubble").appendChild(tools);
+  }
+  const mk = (txt, v) => {
+    const b = document.createElement("button");
+    b.className = "toolbtn fbtn";
+    b.textContent = txt;
+    b.addEventListener("click", () => {
+      const rec = Object.assign({}, fb, { v, t: new Date().toISOString() });
+      try {
+        const arr = JSON.parse(localStorage.getItem("zd_fb") || "[]");
+        arr.push(rec);
+        localStorage.setItem("zd_fb", JSON.stringify(arr));
+      } catch (e) {}
+      div.querySelectorAll(".fbtn").forEach(x => { x.disabled = true; });
+      b.classList.add("on");
+      b.textContent = v === "up" ? "👍 感谢反馈" : "👎 已记录，我们会改进";
+    });
+    return b;
+  };
+  tools.appendChild(mk("👍 有帮助", "up"));
+  tools.appendChild(mk("👎 没帮助", "down"));
+}
+
 function addTools(div, getPlain) {
   const tools = document.createElement("div");
   tools.className = "msg-tools";
@@ -506,6 +569,10 @@ function addTools(div, getPlain) {
   });
   tools.appendChild(btn);
   div.querySelector(".bubble").appendChild(tools);
+}
+
+function exportFeedback() {
+  try { return localStorage.getItem("zd_fb") || "[]"; } catch (e) { return "[]"; }
 }
 
 // ============ 问答主流程 ============
@@ -546,9 +613,13 @@ async function ask(question) {
 
   removeTyping();
   if (answer) {
-    const parsed = splitFollowups(answer);
-    const div = addMsg("bot", renderMarkdown(parsed.body) + sourceHtml(results));
+    const parsed = parseAnswer(answer);
+    let contentHtml = renderMarkdown(parsed.body);
+    if (parsed.keyItems) contentHtml = keycardHtml(parsed.keyItems) + contentHtml;
+    contentHtml += sourceHtml(results);
+    const div = addMsg("bot", contentHtml);
     addTools(div, () => parsed.body);
+    addFeedback(div, { q, mode: "ai", sources: results.map(r => r.c + "·" + r.s) });
     if (parsed.followups.length) addFollowups(div, parsed.followups);
     HISTORY.push({ q, a: answer });
     if (HISTORY.length > 6) HISTORY = HISTORY.slice(-6);
@@ -567,7 +638,8 @@ async function ask(question) {
         : `「${CURRENT_COUNTRY}」范围内未命中，可切回「全部」再试。`;
       html = `<p>抱歉，未在指南中找到相关内容。${tip}</p>`;
     }
-    addMsg("bot", html);
+    const d2 = addMsg("bot", html);
+    addFeedback(d2, { q, mode: "retrieve", hit: results.length > 0 });
   }
   inputEl.disabled = false; sendBtn.disabled = false;
   inputEl.focus();
