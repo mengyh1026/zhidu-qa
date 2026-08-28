@@ -466,6 +466,7 @@
 </footer>
 
 <script src="data.js"></script>
+<script src="share-card.js"></script>
 <script>
 // ============ 配置 ============
 // 生成式后端代理地址（部署 Serverless 后填入，如 https://xxx.fc.aliyuncs.com/chat）
@@ -720,15 +721,27 @@ function addFeedback(div, fb) {
   tools.appendChild(mk("👎 没帮助", "down"));
 }
 
-function addTools(div, getPlain) {
+function addTools(div, getPlain, cardPayload) {
   const tools = document.createElement("div");
   tools.className = "msg-tools";
+  // 分享卡片按钮（share-card.js 提供 window.makeShareCard(opts)）
   const btn = document.createElement("button");
   btn.className = "toolbtn";
-  btn.textContent = "📋 复制";
+  btn.textContent = "🖼 分享卡";
   btn.addEventListener("click", () => {
-    const done = ok => { btn.textContent = ok ? "✅ 已复制" : "❌ 复制失败"; btn.classList.add("copied");
-      setTimeout(() => { btn.textContent = "📋 复制"; btn.classList.remove("copied"); }, 1600); };
+    if (!window.makeShareCard || !cardPayload) return;
+    btn.textContent = "⏳ 生成中…"; btn.disabled = true;
+    window.makeShareCard(cardPayload).catch(function () {}).then(function () {
+      btn.textContent = "🖼 分享卡"; btn.disabled = false;
+    });
+  });
+  tools.appendChild(btn);
+  const btn2 = document.createElement("button");
+  btn2.className = "toolbtn";
+  btn2.textContent = "📋 复制";
+  btn2.addEventListener("click", () => {
+    const done = ok => { btn2.textContent = ok ? "✅ 已复制" : "❌ 复制失败"; btn2.classList.add("copied");
+      setTimeout(() => { btn2.textContent = "📋 复制"; btn2.classList.remove("copied"); }, 1600); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(getPlain()).then(() => done(true), () => done(false));
     } else {
@@ -739,7 +752,7 @@ function addTools(div, getPlain) {
       } catch (e) { done(false); }
     }
   });
-  tools.appendChild(btn);
+  tools.appendChild(btn2);
   div.querySelector(".bubble").appendChild(tools);
 }
 
@@ -790,7 +803,7 @@ async function ask(question) {
     if (parsed.keyItems) contentHtml = keycardHtml(parsed.keyItems) + contentHtml;
     contentHtml += sourceHtml(results);
     const div = addMsg("bot", contentHtml);
-    addTools(div, () => parsed.body);
+    addTools(div, () => parsed.body, { q, answer: parsed.body, sources: results.map(r => r.c + "·" + r.s), theme: document.body.getAttribute("data-theme") || "basic" });
     addFeedback(div, { q, mode: "ai", sources: results.map(r => r.c + "·" + r.s) });
     if (parsed.followups.length) addFollowups(div, parsed.followups);
     HISTORY.push({ q, a: answer });
