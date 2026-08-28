@@ -24,7 +24,8 @@ const SYSTEM_PROMPT =
   "1. 优先依据用户提供的制度条文回答，回答时注明国别和章节出处；\n" +
   "2. 若条文不足以回答，明确说明信息不足，绝不编造税率、期限、材料等关键信息；\n" +
   "3. 回答专业、简洁、条理清晰，适合财务人员快速阅读，可适当使用列表；\n" +
-  "4. 涉及具体数字（税率、金额、期限）时务必与条文一致。";
+  "4. 涉及具体数字（税率、金额、期限）时务必与条文一致；\n" +
+  "5. 回答正文结束后，另起一行以「相关提问：」开头，给出2-3个简洁的追问建议（用顿号分隔），帮助用户连续查询；若无延伸可省略。";
 
 function callDeepSeek(messages) {
   return new Promise((resolve, reject) => {
@@ -70,15 +71,21 @@ function callDeepSeek(messages) {
   });
 }
 
-async function handleChat(question, context) {
+async function handleChat(question, context, history) {
   if (!API_KEY) {
     throw new Error("服务端未配置 DEEPSEEK_API_KEY，请检查环境变量");
   }
   const ctxText = (context || [])
     .map((c) => `【${c.section}】\n${c.text}`)
     .join("\n\n---\n\n");
+  const histMsgs = [];
+  for (const h of (history || []).slice(-3)) {
+    if (h && h.q) histMsgs.push({ role: "user", content: String(h.q).slice(0, 500) });
+    if (h && h.a) histMsgs.push({ role: "assistant", content: String(h.a).slice(0, 1500) });
+  }
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
+    ...histMsgs,
     {
       role: "user",
       content:
@@ -128,7 +135,7 @@ function errResponse(message) {
 // ============ 阿里云函数计算 FC 入口 ============
 exports.handler = (event, context, callback) => {
   const body = parseBody(event);
-  handleChat(body.question, body.context)
+  handleChat(body.question, body.context, body.history)
     .then((answer) => callback(null, okResponse({ answer })))
     .catch((e) => callback(null, errResponse(e.message)));
 };
@@ -137,7 +144,7 @@ exports.handler = (event, context, callback) => {
 exports.main_handler = async (event, context) => {
   const body = parseBody(event);
   try {
-    const answer = await handleChat(body.question, body.context);
+    const answer = await handleChat(body.question, body.context, body.history);
     return okResponse({ answer });
   } catch (e) {
     return errResponse(e.message);
@@ -162,7 +169,7 @@ if (require.main === module) {
     req.on("end", async () => {
       try {
         const body = JSON.parse(raw);
-        const answer = await handleChat(body.question, body.context);
+        const answer = await handleChat(body.question, body.context, body.history);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ answer }));
       } catch (e) {

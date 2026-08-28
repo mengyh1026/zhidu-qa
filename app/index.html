@@ -218,6 +218,23 @@
   }
   .toolbtn:hover { color: var(--primary-dark); }
   .toolbtn.copied { color: #2e8b57; }
+  .src-detail {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #374151;
+    white-space: pre-wrap;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .taglink { cursor: pointer; }
+  .taglink:hover { text-decoration: underline; }
+  .followups { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .fu-label { font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
+  .fuchip { display: inline-block; margin: 0 6px 6px 0; font-size: 13px; padding: 5px 12px; }
 </style>
 </head>
 <body>
@@ -271,6 +288,9 @@
 // 部署到线上后，填入云端代理地址即可启用生成式问答（如 https://xxx.fc.aliyuncs.com/chat）
 // 留空则使用检索模式：直接展示命中的制度条文原文
 const PROXY_URL = "https://1476023346-4nnqmdmu53.ap-guangzhou.tencentscf.com";
+
+// ============ 对话历史（供多轮追问） ============
+let HISTORY = []; // {q, a}
 
 // ============ 检索（BM25） ============
 const INDEX = window.ZHIDU_INDEX || [];
@@ -373,6 +393,7 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   if (chatEl.children.length === 0) return;
   if (!confirm("确定清空当前对话吗？")) return;
   chatEl.innerHTML = "";
+  HISTORY = [];
   welcomeEl.style.display = "";
   inputEl.focus();
 });
@@ -411,10 +432,56 @@ function removeTyping() {
   if (t) t.remove();
 }
 
+const SRC_STORE = [];
 function sourceHtml(results) {
   if (!results || results.length === 0) return "";
-  const tags = results.map(r => `<span class="tag">${r.c} · ${r.s}</span>`).join("");
-  return `<div class="source">📎 参考来源：${tags}</div>`;
+  const start = SRC_STORE.length;
+  results.forEach(r => SRC_STORE.push(r));
+  const tags = results.map((r, i) =>
+    `<span class="tag taglink" data-si="${start + i}" title="点击查看条文原文">${r.c} · ${r.s} ▾</span>`).join("");
+  return `<div class="source">📎 参考来源（点击标签查看原文）：${tags}<div class="src-detail" style="display:none"></div></div>`;
+}
+document.addEventListener("click", e => {
+  const tag = e.target.closest(".taglink");
+  if (!tag) return;
+  const detail = tag.closest(".source").querySelector(".src-detail");
+  if (!detail) return;
+  if (detail.style.display !== "none" && detail.dataset.si === tag.dataset.si) {
+    detail.style.display = "none"; return;
+  }
+  const r = SRC_STORE[Number(tag.dataset.si)];
+  if (!r) return;
+  detail.dataset.si = tag.dataset.si;
+  const txt = r.t.length > 600 ? r.t.slice(0, 600) + "…" : r.t;
+  detail.innerHTML = "<b>条文原文（截取）：</b>\n" + escapeHtml(txt);
+  detail.style.display = "block";
+});
+
+// ============ 追问建议 ============
+function splitFollowups(answer) {
+  const m = answer.match(/(?:【相关提问】|相关提问)[:：]\s*([\s\S]+)$/m);
+  if (!m) return { body: answer, followups: [] };
+  const body = answer.slice(0, m.index).trim();
+  const followups = m[1].split(/[、;；\n]/)
+    .map(s => s.replace(/^[\s"'“”\d.、-]+|[\s"'“”]+$/g, ""))
+    .filter(s => s.length >= 5 && s.length <= 40).slice(0, 3);
+  return { body, followups };
+}
+function addFollowups(div, followups) {
+  const box = document.createElement("div");
+  box.className = "followups";
+  const label = document.createElement("div");
+  label.className = "fu-label";
+  label.textContent = "💡 你可能还想问：";
+  box.appendChild(label);
+  followups.forEach(fq => {
+    const c = document.createElement("span");
+    c.className = "chip fuchip";
+    c.textContent = fq;
+    c.addEventListener("click", () => ask(fq));
+    box.appendChild(c);
+  });
+  div.querySelector(".bubble").appendChild(box);
 }
 
 function addTools(div, getPlain) {
@@ -463,7 +530,7 @@ async function ask(question) {
       const resp = await fetch(PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, context }),
+        body: JSON.stringify({ question: q, context, history: HISTORY.slice(-3) }),
         signal: ctrl.signal
       });
       clearTimeout(timer);
@@ -478,8 +545,12 @@ async function ask(question) {
 
   removeTyping();
   if (answer) {
-    const div = addMsg("bot", renderMarkdown(answer) + sourceHtml(results));
-    addTools(div, () => answer);
+    const parsed = splitFollowups(answer);
+    const div = addMsg("bot", renderMarkdown(parsed.body) + sourceHtml(results));
+    addTools(div, () => parsed.body);
+    if (parsed.followups.length) addFollowups(div, parsed.followups);
+    HISTORY.push({ q, a: answer });
+    if (HISTORY.length > 6) HISTORY = HISTORY.slice(-6);
   } else {
     // 检索式降级
     let html = "";
