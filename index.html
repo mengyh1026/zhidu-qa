@@ -252,9 +252,166 @@
   .keycard li { margin-bottom: 4px; font-size: 14px; }
   sup.cite { color: var(--primary-dark); cursor: default; font-weight: 600; margin: 0 1px; }
   .fbtn.on { color: var(--primary-dark); font-weight: 600; }
+
+  /* ============ 主题切换 ============ */
+  .theme-wrap { position: relative; margin-left: 8px; }
+  .theme-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 99;
+    display: none; flex-direction: column; gap: 2px; min-width: 138px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.16); padding: 6px;
+  }
+  .theme-menu.open { display: flex; }
+  .theme-menu button {
+    border: none; background: none; padding: 8px 12px; border-radius: 7px;
+    font-size: 13px; text-align: left; cursor: pointer; color: var(--text);
+  }
+  .theme-menu button:hover { background: var(--primary-light); }
+  .theme-menu button.on { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
+  #themeDeco { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  header, main, footer { position: relative; z-index: 1; }
+
+  /* ---- 国潮风 · 水墨 ---- */
+  body[data-theme="guochao"] {
+    --primary: #9e3b2c; --primary-dark: #7c2d21; --primary-light: #f3e7e0;
+    --accent: #c8a86b; --bg: #f6f1e7; --card: #fffdf8;
+    --text: #33291f; --text-sub: #8a7d68; --border: #e4dac4;
+    background: linear-gradient(160deg, #f8f3e8 0%, #f5efe1 45%, #f0e9d8 100%);
+  }
+  body[data-theme="guochao"] header { background: linear-gradient(135deg, #3d372c 0%, #2e2a22 60%, #262219 100%); border-bottom: 2px solid #c8a86b; }
+  body[data-theme="guochao"] .msg.user .bubble { background: linear-gradient(135deg, #b04a35, #9e3b2c); }
+  body[data-theme="guochao"] .msg.bot .avatar { background: linear-gradient(135deg, #b04a35, #8f3325); }
+  body[data-theme="guochao"] .bubble th { background: #f3ecdb; }
+  body[data-theme="guochao"] .keycard { background: #f7f0dd; border-left-color: #9e3b2c; }
+  body[data-theme="guochao"] .keycard .kc-title { color: #7c2d21; }
+  body[data-theme="guochao"] .welcome h2 { font-family: "KaiTi", "STKaiti", "楷体", serif; letter-spacing: 2px; }
+  body[data-theme="guochao"] textarea:focus { box-shadow: 0 0 0 3px rgba(158,59,44,.15); }
+  body[data-theme="guochao"] .src-detail { background: #f7f2e6; }
+  body[data-theme="guochao"] #themeDeco {
+    display: block;
+    background:
+      radial-gradient(220px 160px at 8% 12%, rgba(60,52,40,.10), transparent 70%),
+      radial-gradient(260px 200px at 92% 30%, rgba(60,52,40,.08), transparent 70%),
+      radial-gradient(300px 220px at 50% 85%, rgba(60,52,40,.07), transparent 72%),
+      radial-gradient(circle at 22% 38%, rgba(60,52,40,.30) 0 3px, transparent 4px),
+      radial-gradient(circle at 68% 62%, rgba(60,52,40,.24) 0 2px, transparent 3px),
+      radial-gradient(circle at 12% 66%, rgba(60,52,40,.22) 0 2px, transparent 3px);
+  }
+  body[data-theme="guochao"] #themeDeco::before {
+    content: ""; position: absolute; left: -6%; right: -6%; bottom: -90px; height: 300px;
+    background:
+      radial-gradient(55% 120% at 12% 100%, rgba(70,62,48,.16), transparent 68%),
+      radial-gradient(48% 100% at 42% 100%, rgba(70,62,48,.10), transparent 66%),
+      radial-gradient(52% 110% at 74% 100%, rgba(70,62,48,.13), transparent 68%);
+    filter: blur(2px);
+  }
+  body[data-theme="guochao"] #themeDeco .g {
+    position: absolute; font-family: "KaiTi", "STKaiti", "楷体", serif;
+    color: rgba(70,60,45,.085); user-select: none; line-height: 1;
+  }
+  body[data-theme="guochao"] #themeDeco .g1 { left: 2%; top: 5%; font-size: 190px; }
+  body[data-theme="guochao"] #themeDeco .g2 { left: 5%; top: 52%; font-size: 150px; }
+  body[data-theme="guochao"] #themeDeco .g3 { right: 3%; top: 30%; font-size: 170px; }
+
+  /* ---- 科技风 · 深色未来感（第一版） ---- */
+  body[data-theme="tech"] {
+    --primary: #22d3ee; --primary-dark: #67e8f9; --primary-light: rgba(34,211,238,.12);
+    --accent: #7c8cf8; --bg: #0b1220; --card: #1e2942; --text: #e5e7eb; --text-sub: #8b98ad;
+    --border: #243148;
+    background: #0b1220;
+  }
+  body[data-theme="tech"] header {
+    background: linear-gradient(90deg, rgba(11,18,32,.95), rgba(30,41,66,.9));
+    border-bottom: 1px solid rgba(34,211,238,.35);
+    box-shadow: 0 2px 12px rgba(34,211,238,.1);
+  }
+  body[data-theme="tech"] header .logo { background: rgba(34,211,238,.12); }
+  body[data-theme="tech"] .welcome h2 { color: #67e8f9; text-shadow: 0 0 14px rgba(34,211,238,.5); }
+  body[data-theme="tech"] .chip {
+    background: rgba(21,32,53,.85);
+    border-color: rgba(34,211,238,.35);
+    color: #cbd5e1;
+    box-shadow: 0 0 6px rgba(34,211,238,.1);
+  }
+  body[data-theme="tech"] .chip:hover {
+    background: rgba(34,211,238,.15);
+    border-color: #22d3ee;
+    color: #67e8f9;
+    box-shadow: 0 0 12px rgba(34,211,238,.25);
+  }
+  body[data-theme="tech"] .cbtn { background: rgba(21,32,53,.85); color: #cbd5e1; }
+  body[data-theme="tech"] .cbtn.active { background: #22d3ee; border-color: #22d3ee; color: #05202b; }
+  body[data-theme="tech"] .msg.bot .bubble {
+    background: rgba(30,41,66,.75);
+    border-color: rgba(34,211,238,.25);
+    color: #e5e7eb;
+  }
+  body[data-theme="tech"] .msg.user .bubble {
+    background: linear-gradient(135deg, #1e3a5f, #17263f);
+    border: 1px solid rgba(34,211,238,.35);
+    color: #e0f2fe;
+  }
+  body[data-theme="tech"] .msg.user .avatar { background: rgba(34,211,238,.12); }
+  body[data-theme="tech"] .msg.bot .avatar { background: linear-gradient(135deg, #7c8cf8, #22d3ee); }
+  body[data-theme="tech"] .bubble code { background: rgba(34,211,238,.1); color: #67e8f9; }
+  body[data-theme="tech"] .bubble th { background: rgba(34,211,238,.10); }
+  body[data-theme="tech"] .keycard { background: rgba(34,211,238,.07); border-left-color: #22d3ee; }
+  body[data-theme="tech"] .keycard .kc-title { color: #67e8f9; }
+  body[data-theme="tech"] .keycard li { color: #cbd5e1; }
+  body[data-theme="tech"] .source .tag { background: rgba(34,211,238,.1); color: #67e8f9; }
+  body[data-theme="tech"] .src-detail { background: rgba(15,23,42,.8); color: #cbd5e1; }
+  body[data-theme="tech"] footer { background: rgba(15,23,42,.95); }
+  body[data-theme="tech"] textarea {
+    background: rgba(21,32,53,.8);
+    border-color: rgba(34,211,238,.25);
+    color: #e5e7eb;
+  }
+  body[data-theme="tech"] textarea::placeholder { color: #556577; }
+  body[data-theme="tech"] textarea:focus {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 3px rgba(34,211,238,.15);
+  }
+  body[data-theme="tech"] .sendbtn {
+    background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+    color: #05202b;
+    font-weight: 600;
+  }
+  body[data-theme="tech"] .sendbtn:hover { filter: brightness(1.1); }
+  body[data-theme="tech"] .sendbtn:disabled { background: #334155; color: #64748b; }
+  body[data-theme="tech"] .hint { color: #556577; }
+  body[data-theme="tech"] .notice { background: rgba(124,140,248,.1); border-color: rgba(124,140,248,.3); color: #a5b4fc; }
+  body[data-theme="tech"] .theme-menu { background: #1e2942; border-color: #243148; }
+  body[data-theme="tech"] .theme-btn { background: rgba(34,211,238,.12); border-color: rgba(34,211,238,.35); color: #e5e7eb; }
+  body[data-theme="tech"] #clearBtn { background: rgba(34,211,238,.12); border-color: rgba(34,211,238,.35); color: #e5e7eb; }
+  body[data-theme="tech"] #themeDeco {
+    display: block;
+    background:
+      radial-gradient(500px 340px at 85% 6%, rgba(34,211,238,.10), transparent 70%),
+      radial-gradient(420px 320px at 8% 22%, rgba(124,140,248,.10), transparent 70%),
+      radial-gradient(560px 380px at 92% 90%, rgba(34,211,238,.06), transparent 70%);
+  }
+  body[data-theme="tech"] #themeDeco::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(34,211,238,.04) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(34,211,238,.04) 0 1px, transparent 1px 44px);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.35) 40%, rgba(0,0,0,.15));
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.35) 40%, rgba(0,0,0,.15));
+  }
+  body[data-theme="tech"] #themeDeco .g { color: rgba(34,211,238,.05); text-shadow: 0 0 40px rgba(34,211,238,.15); }
 </style>
 </head>
 <body>
+<script>
+  // 尽早应用主题，避免闪烁；支持 ?theme= 预览
+  (function () {
+    try {
+      var t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("zd_theme");
+      if (["basic", "guochao", "tech"].indexOf(t) > -1) document.body.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<div id="themeDeco" aria-hidden="true"><span class="g g1">墨</span><span class="g g2">韻</span><span class="g g3">思</span></div>
 <header>
   <div class="logo"><img src="logo.png" alt="中国海诚"></div>
   <div>
@@ -262,6 +419,14 @@
     <div class="subtitle">中国海诚工程科技股份有限公司 · 财务资金管理中心</div>
   </div>
   <div class="badge" id="clearBtn" title="清空对话">🗑 清空</div>
+  <div class="theme-wrap">
+    <div class="badge" id="themeBtn" title="切换主题">🎨 主题</div>
+    <div class="theme-menu" id="themeMenu">
+      <button data-t="basic">▫️ 基础风</button>
+      <button data-t="guochao">🖌️ 国潮风</button>
+      <button data-t="tech">🔬 科技风</button>
+    </div>
+  </div>
 </header>
 
 <main id="main">
@@ -660,6 +825,31 @@ inputEl.addEventListener("input", () => {
 });
 document.getElementById("chips").addEventListener("click", e => {
   if (e.target.classList.contains("chip")) ask(e.target.textContent);
+});
+
+// ============ 主题切换 ============
+const THEME_NAMES = { basic: "基础风", guochao: "国潮风", tech: "科技风" };
+const themeBtn = document.getElementById("themeBtn");
+const themeMenu = document.getElementById("themeMenu");
+function setTheme(t, save) {
+  if (!THEME_NAMES[t]) t = "basic";
+  document.body.setAttribute("data-theme", t);
+  themeBtn.textContent = "🎨 " + THEME_NAMES[t];
+  themeMenu.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  if (save !== false) { try { localStorage.setItem("zd_theme", t); } catch (e) {} }
+}
+setTheme(document.body.getAttribute("data-theme") || "basic", false);
+themeBtn.addEventListener("click", e => { e.stopPropagation(); themeMenu.classList.toggle("open"); });
+themeMenu.addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  setTheme(b.dataset.t);
+  themeMenu.classList.remove("open");
+});
+document.addEventListener("click", e => {
+  if (themeMenu.classList.contains("open") && !themeMenu.contains(e.target) && e.target !== themeBtn) {
+    themeMenu.classList.remove("open");
+  }
 });
 </script>
 </body>
